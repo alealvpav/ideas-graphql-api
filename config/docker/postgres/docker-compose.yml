@@ -6,6 +6,6 @@ services:
     volumes:
       - './postgres_data:/var/lib/postgresql/data'
     environment:
-      - POSTGRES_PASSWORD=n6DqZSShy8%T!n
+      - POSTGRES_PASSWORD=n6DqZSShy8%T!n  # Change this password in your production enviroment.
     ports:
       - '5432:5432'
