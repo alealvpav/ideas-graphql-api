@@ -24,6 +24,13 @@ class Query(graphene.ObjectType):
     def resolve_users(self, info, **kwargs):
         return User.objects.all()
 
+    def resolve_me(self, info):
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception("User not logged in")
+
+        return user
+
 
 class CreateUser(graphene.Mutation):
     user = graphene.Field(UserType)
