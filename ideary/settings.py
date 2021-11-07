@@ -37,6 +37,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Third Party
+    "django_extensions",
+    "graphene_django",
+    "django_filters",
+    # Ideary apps
+    "ideas",
+    "profiles",
 ]
 
 MIDDLEWARE = [
