@@ -14,7 +14,15 @@ class Query(graphene.ObjectType):
 
     def resolve_ideas(self, info, **kwargs):
         return Idea.objects.all()
-        # return Idea.objects.filter(visibility=Idea.PUBLIC)
+
+    def resolve_public_ieas(self, info, **kwargs):
+        return Idea.objects.filter(visibility=Idea.PUBLIC)
+
+    def resolve_my_ideas(self, info, **kwargs):
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception("User not logged in")
+        return user.profile.idea_set.all()
 
 
 class CreateIdea(graphene.Mutation):
