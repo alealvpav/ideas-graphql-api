@@ -17,6 +17,7 @@ class ProfileType(DjangoObjectType):
 class Query(graphene.ObjectType):
     profiles = graphene.List(ProfileType)
     users = graphene.List(UserType)
+    me = graphene.Field(UserType)
 
     def resolve_profiles(self, info, **kwargs):
         return Profile.objects.all()
@@ -24,7 +25,7 @@ class Query(graphene.ObjectType):
     def resolve_users(self, info, **kwargs):
         return User.objects.all()
 
-    def resolve_me(self, info):
+    def resolve_me(self, info, **kwargs):
         user = info.context.user
         if user.is_anonymous:
             raise Exception("User not logged in")
