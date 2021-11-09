@@ -215,6 +215,27 @@ class StopFollowing(graphene.Mutation):
         return StopFollowing(ok=True)
 
 
+class DeleteFollower(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        id = graphene.Int()
+
+    def mutate(self, info, id, **kwargs):
+        """
+        Removes a Profile from the follower Profiles of the logged User
+        - Un usuario puede eliminar a otro usuario de su lista de seguidores
+        """
+        user = info.context.user
+        if check_user_logged(user):
+            try:
+                follower = Profile.objects.get(pk=id)
+            except Profile.DoesNotExist:
+                raise GraphQLError("The Profile of your request does not exist")
+            user.profile.followers.remove(follower)
+        return DeleteFollower(ok=True)
+
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     update_password = UpdatePassword.Field()
@@ -222,3 +243,4 @@ class Mutation(graphene.ObjectType):
     accept_follow_request = AcceptFollowRequest.Field()
     deny_follow_request = DenyFollowRequest.Field()
     stop_following = StopFollowing.Field()
+    delete_follower = DeleteFollower.Field()
