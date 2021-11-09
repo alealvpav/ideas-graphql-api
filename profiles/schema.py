@@ -4,7 +4,7 @@ from graphql.error.base import GraphQLError
 
 from profiles.permisision_tools import check_user_logged
 
-from .models import Profile, User
+from .models import FollowRequest, Profile, User
 
 
 class UserType(DjangoObjectType):
@@ -17,12 +17,18 @@ class ProfileType(DjangoObjectType):
         model = Profile
 
 
+class FollowRequestType(DjangoObjectType):
+    class Meta:
+        model = FollowRequest
+
+
 class Query(graphene.ObjectType):
     profiles = graphene.List(ProfileType)
     users = graphene.List(UserType)
     me = graphene.Field(UserType)
     followers = graphene.List(ProfileType)
     following = graphene.List(ProfileType)
+    my_follow_requests = graphene.List(FollowRequestType)
 
     def resolve_profiles(self, info, **kwargs):
         return Profile.objects.all()
@@ -52,6 +58,15 @@ class Query(graphene.ObjectType):
         user = info.context.user
         check_user_logged(user)
         return user.profile.get_following()
+
+    def resolve_my_follow_requests(self, info, **kwargs):
+        """
+        Returns the list of PENDING FollowRequest received by the logged User Profile
+        - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
+        """
+        user = info.context.user
+        check_user_logged(user)
+        return user.profile.get_my_followrequests()
 
 
 class CreateUser(graphene.Mutation):
@@ -87,10 +102,6 @@ class UpdatePassword(graphene.Mutation):
             user.save()
 
         return UpdatePassword(user=user)
-
-
-# class CreateProfile(graphene.Mutation):
-#     pass
 
 
 class Mutation(graphene.ObjectType):
