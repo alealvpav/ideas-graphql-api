@@ -1,6 +1,8 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql.error.base import GraphQLError
+from ideas.ideas_services import get_visible_ideas
+from profiles.models import Profile
 
 from profiles.permisision_tools import check_permission_user_idea, check_user_logged
 
