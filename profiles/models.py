@@ -32,6 +32,18 @@ class Profile(models.Model):
             requested=self, status=FollowRequest.PENDING
         )
 
+    def get_followers(self):
+        """
+        Returns the queryset of all the Profile following this Profile instance
+        """
+        return self.followers.all()
+
+    def get_following(self):
+        """
+        Returns the queryset of all the Profiles this instance is Following
+        """
+        return Profile.objects.filter(followers=self)
+
 
 class FollowRequest(models.Model):
 

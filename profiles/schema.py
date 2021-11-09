@@ -21,6 +21,8 @@ class Query(graphene.ObjectType):
     profiles = graphene.List(ProfileType)
     users = graphene.List(UserType)
     me = graphene.Field(UserType)
+    followers = graphene.List(ProfileType)
+    following = graphene.List(ProfileType)
 
     def resolve_profiles(self, info, **kwargs):
         return Profile.objects.all()
@@ -33,7 +35,23 @@ class Query(graphene.ObjectType):
         check_user_logged(user)
         return user
 
-        return user
+    def resolve_followers(self, info, **kwargs):
+        """
+        Returns the list of Profiles that follow the Profile of the User in the request
+        - Un usuario puede ver el listado de gente que le sigue
+        """
+        user = info.context.user
+        check_user_logged(user)
+        return user.profile.get_followers()
+
+    def resolve_following(self, info, **kwargs):
+        """
+        Returns the list of Profiles followed by the Profile of the User in the request
+        - Un usuario puede ver el listado de gente a la que sigue
+        """
+        user = info.context.user
+        check_user_logged(user)
+        return user.profile.get_following()
 
 
 class CreateUser(graphene.Mutation):
