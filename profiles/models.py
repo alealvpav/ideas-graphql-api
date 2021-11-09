@@ -83,6 +83,9 @@ class FollowRequest(models.Model):
         self.status = self.REJECTED
         self.save()
 
+    def __str__(self) -> str:
+        return f"From {self.requestor} to {self.requested}: {self.get_status_display()}"
+
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
