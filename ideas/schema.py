@@ -134,7 +134,31 @@ class DeleteIdea(graphene.Mutation):
         return DeleteIdea(ok=True)
 
 
+class ProfileIdeas(graphene.Mutation):
+    ideas = graphene.List(IdeaType)
+
+    class Arguments:
+        id = graphene.Int()
+
+    def mutate(self, info, id, **kwargs):
+        """
+        Obtains all ideas from requested Profile visible by the logged User (if exists)
+        - Un usuario puede ver la lista de ideas de cualquier otro usuario, teniendo en cuenta la visibilidad de cada idea.
+        """
+        try:
+            profile = Profile.objects.get(pk=id)
+        except Profile.DoesNotExist:
+            raise GraphQLError("The requested Profile does not exist")
+        user = info.context.user
+        user_profile = user.profile if not user.is_anonymous else None
+
+        ideas = get_visible_ideas(profile, user_profile)
+
+        return ProfileIdeas(ideas=ideas)
+
+
 class Mutation(graphene.ObjectType):
     create_idea = CreateIdea.Field()
     update_idea = UpdateIdeaVisibility.Field()
     delete_idea = DeleteIdea.Field()
+    profile_ideas = ProfileIdeas.Field()
