@@ -1,6 +1,8 @@
 import graphene
 from graphene_django import DjangoObjectType
 
+from profiles.permisision_tools import check_user_logged
+
 from .models import Profile, User
 
 
@@ -49,9 +51,29 @@ class CreateUser(graphene.Mutation):
         return CreateUser(user=user)
 
 
+class UpdatePassword(graphene.Mutation):
+    user = graphene.Field(UserType)
+
+    class Arguments:
+        password = graphene.String()
+
+    def mutate(self, info, password):
+        """
+        A logged user can update his password here
+        - Un usuario debe poder cambiar su contraseña.
+        """
+        user = info.context.user
+        if check_user_logged(user):
+            user.set_password(password)
+            user.save()
+
+        return UpdatePassword(user=user)
+
+
 # class CreateProfile(graphene.Mutation):
 #     pass
 
 
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
+    update_password = UpdatePassword.Field()
