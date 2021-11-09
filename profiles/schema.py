@@ -114,7 +114,7 @@ class CreateFollowRequest(graphene.Mutation):
         requested_id = graphene.Int()
 
     def mutate(self, info, requested_id, **kwargs):
-        """ "
+        """
         Creates a FollowRequest from the logged User Profile (as requestor) to the
         requested Profile
         - Un usuario puede solicitar seguir a otro usuario
@@ -146,7 +146,7 @@ class AcceptFollowRequest(graphene.Mutation):
         follow_request_id = graphene.Int()
 
     def mutate(self, info, follow_request_id, **kwargs):
-        """ "
+        """
         Accepts a pending FollowRequest to the logged User Profile
         - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
         """
@@ -174,7 +174,7 @@ class DenyFollowRequest(graphene.Mutation):
         follow_request_id = graphene.Int()
 
     def mutate(self, info, follow_request_id, **kwargs):
-        """ "
+        """
         Denies a pending FollowRequest to the logged User Profile
         - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
         """
