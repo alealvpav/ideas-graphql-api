@@ -82,27 +82,35 @@ class CreateIdea(graphene.Mutation):
         idea.save()
 
         return CreateIdea(idea=idea)
-    id = graphene.Int()
-    profile = graphene.Int()
-    content = graphene.String()
-    visibility = graphene.String()
+
+
+class UpdateIdeaVisibility(graphene.Mutation):
+    idea = graphene.Field(IdeaType)
 
     class Arguments:
-        profile = graphene.Int()
-        content = graphene.String()
+        id = graphene.Int()
         visibility = graphene.String()
 
-    def mutate(self, profile, content, visibility):
-        idea = Idea(profile=profile, content=content, visibility=visibility)
+    def mutate(self, info, id, visibility, **kwargs):
+        """
+        Allows a user to update the visibility of a published idea
+        - Un usuario puede establecer la visibilidad de una idea en el momento de su creacion o editarla posteriormente.
+        """
+        try:
+            idea = Idea.objects.get(pk=id)
+        except Idea.DoesNotExist:
+            raise GraphQLError("The idea you're trying to edit does not exist")
+
+        user = info.context.user
+        check_user_logged(user)
+        check_permission_user_idea(user, idea)
+
+        idea.visibility = visibility
         idea.save()
 
-        return CreateIdea(
-            id=idea.id,
-            profile=idea.profile,
-            content=idea.content,
-            visibility=idea.visibility,
-        )
+        return UpdateIdeaVisibility(idea=idea)
 
 
 class Mutation(graphene.ObjectType):
     create_idea = CreateIdea.Field()
+    update_idea = UpdateIdeaVisibility.Field()
