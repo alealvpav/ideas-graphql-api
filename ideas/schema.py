@@ -1,5 +1,8 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql.error.base import GraphQLError
+
+from profiles.permisision_tools import check_permission_user_idea, check_user_logged
 
 from .models import Idea
 
@@ -55,7 +58,30 @@ class Query(graphene.ObjectType):
         )
         return (own_ideas | followed_ideas).distinct().order_by("-created")
 
+
 class CreateIdea(graphene.Mutation):
+    idea = graphene.Field(IdeaType)
+
+    class Arguments:
+        content = graphene.String(required=True)
+        visibility = graphene.String(required=False)
+
+    def mutate(self, info, content, **kwargs):
+        """
+        Creates an idea and optionally sets its visibility to a non-default value.
+        - Un usuario puede publicar una idea como un texto corto en cualquier momento.
+        - Un usuario puede establecer la visibilidad de una idea en el momento de su creacion o editarla posteriormente.
+        """
+        user = info.context.user
+
+        check_user_logged(user)
+
+        idea = Idea(profile=user.profile, content=content)
+        if "visibility" in kwargs:
+            idea.visibility = kwargs["visibility"]
+        idea.save()
+
+        return CreateIdea(idea=idea)
     id = graphene.Int()
     profile = graphene.Int()
     content = graphene.String()
