@@ -125,12 +125,14 @@ class CreateFollowRequest(graphene.Mutation):
                 raise GraphQLError("The Profile you're trying to follow does not exist")
             if not FollowRequest.objects.filter(
                 requested=requested, requestor=requestor
-            ):
+            ).exists():
                 followrequest = FollowRequest(
                     requestor=requestor,
                     requested=requested,
                 )
                 followrequest.save()
+            else:
+                raise GraphQLError("It already exists a FollowRequest to that Profile")
             return CreateFollowRequest(followrequest=followrequest)
 
 
