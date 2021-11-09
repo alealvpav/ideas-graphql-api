@@ -194,9 +194,31 @@ class DenyFollowRequest(graphene.Mutation):
             return AcceptFollowRequest(followrequest=followrequest)
 
 
+class StopFollowing(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        id = graphene.Int()
+
+    def mutate(self, info, id, **kwargs):
+        """
+        Makes a profile to stop following another
+        - Un usuario puede dejar de seguir a alguien
+        """
+        user = info.context.user
+        if check_user_logged(user):
+            try:
+                followed_profile = Profile.objects.get(pk=id)
+            except Profile.DoesNotExist:
+                raise GraphQLError("The Profile of your request does not exist")
+            followed_profile.followers.remove(user.profile)
+        return StopFollowing(ok=True)
+
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     update_password = UpdatePassword.Field()
     create_follow_request = CreateFollowRequest.Field()
     accept_follow_request = AcceptFollowRequest.Field()
     deny_follow_request = DenyFollowRequest.Field()
+    stop_following = StopFollowing.Field()
