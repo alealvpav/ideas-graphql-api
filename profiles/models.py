@@ -18,6 +18,20 @@ class Profile(models.Model):
     def __str__(self) -> str:
         return str(self.user)
 
+    def get_my_ideas(self):
+        """
+        Returns a queryset of all the ideas of a Profile ordered by descending date
+        """
+        return self.idea_set.all().order_by("-created")
+
+    def get_my_followrequests(self):
+        """
+        Returns a queryset with all the PENDING FollowRequest a Profile have received
+        """
+        return FollowRequest.objects.filter(
+            requested=self, status=FollowRequest.PENDING
+        )
+
 
 class FollowRequest(models.Model):
 
@@ -42,20 +56,36 @@ class FollowRequest(models.Model):
     status = models.CharField(max_length=3, choices=STATUSES, default=PENDING)
 
     def approve(self):
+        """
+        Approves a FollowRequest, adding the requestor profile to the followers list of
+        the requested profile
+        """
         self.status = self.APPROVED
         self.save()
+        self.requested.followers.add(self.requestor)
 
     def reject(self):
+        """
+        Rejects a FollowRequest, setting its status to REJECTED
+        """
         self.status = self.REJECTED
         self.save()
 
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
+    """
+    Post save signal to automatically create the asociated Profile to a User when it's
+    created
+    """
     if created:
         Profile.objects.create(user=instance)
 
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
+    """
+    Post save signal to automatically update the asociated Profile to a User when it's
+    updated
+    """
     instance.profile.save()
