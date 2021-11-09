@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql.error.base import GraphQLError
 
 from profiles.permisision_tools import check_user_logged
 
@@ -30,7 +31,7 @@ class Query(graphene.ObjectType):
     def resolve_me(self, info, **kwargs):
         user = info.context.user
         if user.is_anonymous:
-            raise Exception("User not logged in")
+            raise GraphQLError("User not logged in")
 
         return user
 
