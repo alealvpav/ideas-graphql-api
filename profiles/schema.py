@@ -2,7 +2,10 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql.error.base import GraphQLError
 
-from profiles.permisision_tools import check_user_logged
+from profiles.permisision_tools import (
+    check_permission_user_followrequest,
+    check_user_logged,
+)
 
 from .models import FollowRequest, Profile, User
 
@@ -136,7 +139,64 @@ class CreateFollowRequest(graphene.Mutation):
             return CreateFollowRequest(followrequest=followrequest)
 
 
+class AcceptFollowRequest(graphene.Mutation):
+    followrequest = graphene.Field(FollowRequestType)
+
+    class Arguments:
+        follow_request_id = graphene.Int()
+
+    def mutate(self, info, follow_request_id, **kwargs):
+        """ "
+        Accepts a pending FollowRequest to the logged User Profile
+        - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
+        """
+        user = info.context.user
+        if check_user_logged(user):
+            requestor = user.profile
+            try:
+                followrequest = FollowRequest.objects.get(pk=follow_request_id)
+            except FollowRequest.DoesNotExist:
+                raise GraphQLError(
+                    "The Follow Request you're trying to accept does not exist"
+                )
+            if check_permission_user_followrequest(
+                user, followrequest, action="accept"
+            ):
+                followrequest.approve()
+
+            return AcceptFollowRequest(followrequest=followrequest)
+
+
+class DenyFollowRequest(graphene.Mutation):
+    followrequest = graphene.Field(FollowRequestType)
+
+    class Arguments:
+        follow_request_id = graphene.Int()
+
+    def mutate(self, info, follow_request_id, **kwargs):
+        """ "
+        Denies a pending FollowRequest to the logged User Profile
+        - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
+        """
+        user = info.context.user
+        if check_user_logged(user):
+            requestor = user.profile
+            try:
+                followrequest = FollowRequest.objects.get(pk=follow_request_id)
+            except FollowRequest.DoesNotExist:
+                raise GraphQLError(
+                    "The Follow Request you're trying to deny does not exist"
+                )
+
+            if check_permission_user_followrequest(user, followrequest, action="deny"):
+                followrequest.reject()
+
+            return AcceptFollowRequest(followrequest=followrequest)
+
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     update_password = UpdatePassword.Field()
     create_follow_request = CreateFollowRequest.Field()
+    accept_follow_request = AcceptFollowRequest.Field()
+    deny_follow_request = DenyFollowRequest.Field()
