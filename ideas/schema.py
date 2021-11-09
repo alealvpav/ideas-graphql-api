@@ -111,6 +111,30 @@ class UpdateIdeaVisibility(graphene.Mutation):
         return UpdateIdeaVisibility(idea=idea)
 
 
+class DeleteIdea(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        id = graphene.Int()
+
+    def mutate(slef, info, id, **kwargs):
+        """
+        Allows a user to delete a published (by them) idea
+        - Un usuario puede borrar una idea publicada.
+        """
+        try:
+            idea = Idea.objects.get(pk=id)
+        except Idea.DoesNotExist:
+            raise GraphQLError("The idea you're trying to delete does not exist")
+
+        user = info.context.user
+        if check_user_logged(user) and check_permission_user_idea(user, idea):
+            idea.delete()
+
+        return DeleteIdea(ok=True)
+
+
 class Mutation(graphene.ObjectType):
     create_idea = CreateIdea.Field()
     update_idea = UpdateIdeaVisibility.Field()
+    delete_idea = DeleteIdea.Field()
