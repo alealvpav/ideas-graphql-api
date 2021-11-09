@@ -104,6 +104,37 @@ class UpdatePassword(graphene.Mutation):
         return UpdatePassword(user=user)
 
 
+class CreateFollowRequest(graphene.Mutation):
+    followrequest = graphene.Field(FollowRequestType)
+
+    class Arguments:
+        requested_id = graphene.Int()
+
+    def mutate(self, info, requested_id, **kwargs):
+        """ "
+        Creates a FollowRequest from the logged User Profile (as requestor) to the
+        requested Profile
+        - Un usuario puede solicitar seguir a otro usuario
+        """
+        user = info.context.user
+        if check_user_logged(user):
+            requestor = user.profile
+            try:
+                requested = Profile.objects.get(pk=requested_id)
+            except Profile.DoesNotExist:
+                raise GraphQLError("The Profile you're trying to follow does not exist")
+            if not FollowRequest.objects.filter(
+                requested=requested, requestor=requestor
+            ):
+                followrequest = FollowRequest(
+                    requestor=requestor,
+                    requested=requested,
+                )
+                followrequest.save()
+            return CreateFollowRequest(followrequest=followrequest)
+
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     update_password = UpdatePassword.Field()
+    create_follow_request = CreateFollowRequest.Field()
