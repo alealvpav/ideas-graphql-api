@@ -11,17 +11,31 @@ class IdeaType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     ideas = graphene.List(IdeaType)
+    public_ideas = graphene.List(IdeaType)
+    my_ideas = graphene.List(IdeaType)
 
     def resolve_ideas(self, info, **kwargs):
+        """
+        List all the visible Ideas
+        """
+        # TODO(alealvpav): Default queryset should be limited to PUBLIC. Then add the
+        # PRIVATE own ideas and the PROTECTED of the following profiles
         return Idea.objects.all()
 
-    def resolve_public_ieas(self, info, **kwargs):
+    def resolve_public_ideas(self, info, **kwargs):
+        """
+        List the PUBLIC (visibility) Ideas
+        This functionality is covered by resolve_ideas but it's here for testing purposes
+        """
         return Idea.objects.filter(visibility=Idea.PUBLIC)
 
     def resolve_my_ideas(self, info, **kwargs):
+        """
+        List the Ideas published by a user
+        """
         user = info.context.user
-        if user.is_anonymous:
-            raise Exception("User not logged in")
+        check_user_logged(user)
+        return user.profile.get_my_ideas()
         return user.profile.idea_set.all()
 
 
