@@ -241,6 +241,25 @@ class DeleteFollower(graphene.Mutation):
         return DeleteFollower(ok=True)
 
 
+class RestorePassword(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        email = graphene.String()
+
+    def mutate(self, info, email, **kwargs):
+        """
+        Creates a magic link to restore password and sends it by email
+        - Un usuario debe poder restaurar su contraseña recibiendo un email con un magic link.
+        """
+        try:
+            user = Profile.objects.get(email=email)
+        except Profile.DoesNotExist:
+            raise GraphQLError("There is no account asociated to that email")
+        user.generate_magic_link()
+        return RestorePassword(ok=True)
+
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     update_password = UpdatePassword.Field()
@@ -249,3 +268,4 @@ class Mutation(graphene.ObjectType):
     deny_follow_request = DenyFollowRequest.Field()
     stop_following = StopFollowing.Field()
     delete_follower = DeleteFollower.Field()
+    restore_password = RestorePassword.Field()

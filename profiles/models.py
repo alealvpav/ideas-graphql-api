@@ -1,13 +1,23 @@
+from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from django.utils import timezone
+from graphene.types import uuid
+
 
 class User(AbstractUser):
 
     email = models.EmailField(blank=True, unique=True)
+
+    def generate_magic_link(self):
+        self.magiclink_set.update(valid=False)
+        expiration = timezone.now() + timedelta(days=1)
+        magic_link = MagicLink(user=self, expirated_time=expiration, valid=True)
+        magic_link.save()
 
 
 class Profile(models.Model):
@@ -85,6 +95,13 @@ class FollowRequest(models.Model):
 
     def __str__(self) -> str:
         return f"From {self.requestor} to {self.requested}: {self.get_status_display()}"
+
+
+class MagicLink(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    expirated_time = models.DateTimeField()
+    valid = models.BooleanField(default=True)
+    uuid = models.UUIDField()
 
 
 @receiver(post_save, sender=User)
