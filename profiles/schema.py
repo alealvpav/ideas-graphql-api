@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
 from graphql.error.base import GraphQLError
 
 from profiles.permisision_tools import (
@@ -18,6 +19,8 @@ class UserType(DjangoObjectType):
 class ProfileType(DjangoObjectType):
     class Meta:
         model = Profile
+        filter_fields = {"user__username": ["exact", "icontains", "istartswith"]}
+        interfaces = (graphene.relay.Node,)
 
 
 class FollowRequestType(DjangoObjectType):
@@ -27,6 +30,8 @@ class FollowRequestType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     profiles = graphene.List(ProfileType)
+    searchable_profiles = graphene.relay.Node.Field(ProfileType)
+    profiles_search = DjangoFilterConnectionField(ProfileType)
     users = graphene.List(UserType)
     me = graphene.Field(UserType)
     followers = graphene.List(ProfileType)
