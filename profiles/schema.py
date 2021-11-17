@@ -1,3 +1,4 @@
+from graphql_jwt.decorators import login_required
 import graphene
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
@@ -5,7 +6,6 @@ from graphql.error.base import GraphQLError
 
 from profiles.permisision_tools import (
     check_permission_user_followrequest,
-    check_user_logged,
 )
 
 from .models import FollowRequest, Profile, User
@@ -44,36 +44,36 @@ class Query(graphene.ObjectType):
     def resolve_users(self, info, **kwargs):
         return User.objects.all()
 
+    @login_required
     def resolve_me(self, info, **kwargs):
         user = info.context.user
-        check_user_logged(user)
         return user
 
+    @login_required
     def resolve_followers(self, info, **kwargs):
         """
         Returns the list of Profiles that follow the Profile of the User in the request
         - Un usuario puede ver el listado de gente que le sigue
         """
         user = info.context.user
-        check_user_logged(user)
         return user.profile.get_followers()
 
+    @login_required
     def resolve_following(self, info, **kwargs):
         """
         Returns the list of Profiles followed by the Profile of the User in the request
         - Un usuario puede ver el listado de gente a la que sigue
         """
         user = info.context.user
-        check_user_logged(user)
         return user.profile.get_following()
 
+    @login_required
     def resolve_my_follow_requests(self, info, **kwargs):
         """
         Returns the list of PENDING FollowRequest received by the logged User Profile
         - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
         """
         user = info.context.user
-        check_user_logged(user)
         return user.profile.get_my_followrequests()
 
 
@@ -99,15 +99,15 @@ class UpdatePassword(graphene.Mutation):
     class Arguments:
         password = graphene.String()
 
+    @login_required
     def mutate(self, info, password):
         """
         A logged user can update his password here
         - Un usuario debe poder cambiar su contraseña.
         """
         user = info.context.user
-        if check_user_logged(user):
-            user.set_password(password)
-            user.save()
+        user.set_password(password)
+        user.save()
 
         return UpdatePassword(user=user)
 
@@ -118,6 +118,7 @@ class CreateFollowRequest(graphene.Mutation):
     class Arguments:
         requested_id = graphene.Int()
 
+    @login_required
     def mutate(self, info, requested_id, **kwargs):
         """
         Creates a FollowRequest from the logged User Profile (as requestor) to the
@@ -125,23 +126,22 @@ class CreateFollowRequest(graphene.Mutation):
         - Un usuario puede solicitar seguir a otro usuario
         """
         user = info.context.user
-        if check_user_logged(user):
-            requestor = user.profile
-            try:
-                requested = Profile.objects.get(pk=requested_id)
-            except Profile.DoesNotExist:
-                raise GraphQLError("The Profile you're trying to follow does not exist")
-            if not FollowRequest.objects.filter(
-                requested=requested, requestor=requestor
-            ).exists():
-                followrequest = FollowRequest(
-                    requestor=requestor,
-                    requested=requested,
-                )
-                followrequest.save()
-            else:
-                raise GraphQLError("It already exists a FollowRequest to that Profile")
-            return CreateFollowRequest(followrequest=followrequest)
+        requestor = user.profile
+        try:
+            requested = Profile.objects.get(pk=requested_id)
+        except Profile.DoesNotExist:
+            raise GraphQLError("The Profile you're trying to follow does not exist")
+        if not FollowRequest.objects.filter(
+            requested=requested, requestor=requestor
+        ).exists():
+            followrequest = FollowRequest(
+                requestor=requestor,
+                requested=requested,
+            )
+            followrequest.save()
+        else:
+            raise GraphQLError("It already exists a FollowRequest to that Profile")
+        return CreateFollowRequest(followrequest=followrequest)
 
 
 class AcceptFollowRequest(graphene.Mutation):
@@ -150,26 +150,24 @@ class AcceptFollowRequest(graphene.Mutation):
     class Arguments:
         follow_request_id = graphene.Int()
 
+    @login_required
     def mutate(self, info, follow_request_id, **kwargs):
         """
         Accepts a pending FollowRequest to the logged User Profile
         - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
         """
         user = info.context.user
-        if check_user_logged(user):
-            requestor = user.profile
-            try:
-                followrequest = FollowRequest.objects.get(pk=follow_request_id)
-            except FollowRequest.DoesNotExist:
-                raise GraphQLError(
-                    "The Follow Request you're trying to accept does not exist"
-                )
-            if check_permission_user_followrequest(
-                user, followrequest, action="accept"
-            ):
-                followrequest.approve()
+        requestor = user.profile
+        try:
+            followrequest = FollowRequest.objects.get(pk=follow_request_id)
+        except FollowRequest.DoesNotExist:
+            raise GraphQLError(
+                "The Follow Request you're trying to accept does not exist"
+            )
+        if check_permission_user_followrequest(user, followrequest, action="accept"):
+            followrequest.approve()
 
-            return AcceptFollowRequest(followrequest=followrequest)
+        return AcceptFollowRequest(followrequest=followrequest)
 
 
 class DenyFollowRequest(graphene.Mutation):
@@ -178,25 +176,25 @@ class DenyFollowRequest(graphene.Mutation):
     class Arguments:
         follow_request_id = graphene.Int()
 
+    @login_required
     def mutate(self, info, follow_request_id, **kwargs):
         """
         Denies a pending FollowRequest to the logged User Profile
         - Un usuario puede ver el listado de solicitudes de seguimiento recibidas y aprobarlas o denegarlas
         """
         user = info.context.user
-        if check_user_logged(user):
-            requestor = user.profile
-            try:
-                followrequest = FollowRequest.objects.get(pk=follow_request_id)
-            except FollowRequest.DoesNotExist:
-                raise GraphQLError(
-                    "The Follow Request you're trying to deny does not exist"
-                )
+        requestor = user.profile
+        try:
+            followrequest = FollowRequest.objects.get(pk=follow_request_id)
+        except FollowRequest.DoesNotExist:
+            raise GraphQLError(
+                "The Follow Request you're trying to deny does not exist"
+            )
 
-            if check_permission_user_followrequest(user, followrequest, action="deny"):
-                followrequest.reject()
+        if check_permission_user_followrequest(user, followrequest, action="deny"):
+            followrequest.reject()
 
-            return AcceptFollowRequest(followrequest=followrequest)
+        return AcceptFollowRequest(followrequest=followrequest)
 
 
 class StopFollowing(graphene.Mutation):
@@ -205,18 +203,18 @@ class StopFollowing(graphene.Mutation):
     class Arguments:
         id = graphene.Int()
 
+    @login_required
     def mutate(self, info, id, **kwargs):
         """
         Makes a profile to stop following another
         - Un usuario puede dejar de seguir a alguien
         """
         user = info.context.user
-        if check_user_logged(user):
-            try:
-                followed_profile = Profile.objects.get(pk=id)
-            except Profile.DoesNotExist:
-                raise GraphQLError("The Profile of your request does not exist")
-            followed_profile.followers.remove(user.profile)
+        try:
+            followed_profile = Profile.objects.get(pk=id)
+        except Profile.DoesNotExist:
+            raise GraphQLError("The Profile of your request does not exist")
+        followed_profile.followers.remove(user.profile)
         return StopFollowing(ok=True)
 
 
@@ -226,18 +224,18 @@ class DeleteFollower(graphene.Mutation):
     class Arguments:
         id = graphene.Int()
 
+    @login_required
     def mutate(self, info, id, **kwargs):
         """
         Removes a Profile from the follower Profiles of the logged User
         - Un usuario puede eliminar a otro usuario de su lista de seguidores
         """
         user = info.context.user
-        if check_user_logged(user):
-            try:
-                follower = Profile.objects.get(pk=id)
-            except Profile.DoesNotExist:
-                raise GraphQLError("The Profile of your request does not exist")
-            user.profile.followers.remove(follower)
+        try:
+            follower = Profile.objects.get(pk=id)
+        except Profile.DoesNotExist:
+            raise GraphQLError("The Profile of your request does not exist")
+        user.profile.followers.remove(follower)
         return DeleteFollower(ok=True)
 
 

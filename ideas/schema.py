@@ -3,10 +3,11 @@ from graphene_django import DjangoObjectType
 from graphql.error.base import GraphQLError
 from ideas.ideas_services import get_visible_ideas
 from profiles.models import Profile
-
-from profiles.permisision_tools import check_permission_user_idea, check_user_logged
+from profiles.permisision_tools import check_permission_user_idea
 
 from .models import Idea
+
+from graphql_jwt.decorators import login_required
 
 
 class IdeaType(DjangoObjectType):
@@ -35,14 +36,15 @@ class Query(graphene.ObjectType):
         """
         return Idea.objects.filter(visibility=Idea.PUBLIC)
 
+    @login_required
     def resolve_my_ideas(self, info, **kwargs):
         """
         List the Ideas published by a user
         """
         user = info.context.user
-        check_user_logged(user)
         return user.profile.get_my_ideas()
 
+    @login_required
     def resolve_timeline(self, info, **kwargs):
         """
         List the timeline (Ideas) of a logged User. This means all the ideas of the
@@ -50,7 +52,6 @@ class Query(graphene.ObjectType):
         - Un usuario puede ver un timeline de ideas compuesto por sus propias ideas y las ideas de los usuarios a los que sigue, teniendo en cuenta la visibilidad de cada idea.
         """
         user = info.context.user
-        check_user_logged(user)
         # Own ideas
         own_ideas = user.profile.get_my_ideas()
         # Ideas of the profiles followed by the user
@@ -67,6 +68,7 @@ class CreateIdea(graphene.Mutation):
         content = graphene.String(required=True)
         visibility = graphene.String(required=False)
 
+    @login_required
     def mutate(self, info, content, **kwargs):
         """
         Creates an idea and optionally sets its visibility to a non-default value.
@@ -74,8 +76,6 @@ class CreateIdea(graphene.Mutation):
         - Un usuario puede establecer la visibilidad de una idea en el momento de su creacion o editarla posteriormente.
         """
         user = info.context.user
-
-        check_user_logged(user)
 
         idea = Idea(profile=user.profile, content=content)
         if "visibility" in kwargs:
@@ -92,6 +92,7 @@ class UpdateIdeaVisibility(graphene.Mutation):
         id = graphene.Int()
         visibility = graphene.String()
 
+    @login_required
     def mutate(self, info, id, visibility, **kwargs):
         """
         Allows a user to update the visibility of a published idea
@@ -103,7 +104,6 @@ class UpdateIdeaVisibility(graphene.Mutation):
             raise GraphQLError("The idea you're trying to edit does not exist")
 
         user = info.context.user
-        check_user_logged(user)
         check_permission_user_idea(user, idea)
 
         idea.visibility = visibility
@@ -118,6 +118,7 @@ class DeleteIdea(graphene.Mutation):
     class Arguments:
         id = graphene.Int()
 
+    @login_required
     def mutate(slef, info, id, **kwargs):
         """
         Allows a user to delete a published (by them) idea
@@ -129,7 +130,7 @@ class DeleteIdea(graphene.Mutation):
             raise GraphQLError("The idea you're trying to delete does not exist")
 
         user = info.context.user
-        if check_user_logged(user) and check_permission_user_idea(user, idea):
+        if check_permission_user_idea(user, idea):
             idea.delete()
 
         return DeleteIdea(ok=True)
@@ -141,6 +142,7 @@ class ProfileIdeas(graphene.Mutation):
     class Arguments:
         id = graphene.Int()
 
+    @login_required
     def mutate(self, info, id, **kwargs):
         """
         Obtains all ideas from requested Profile visible by the logged User (if exists)
