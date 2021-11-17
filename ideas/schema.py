@@ -42,7 +42,6 @@ class Query(graphene.ObjectType):
         user = info.context.user
         check_user_logged(user)
         return user.profile.get_my_ideas()
-        return user.profile.idea_set.all()
 
     def resolve_timeline(self, info, **kwargs):
         """
